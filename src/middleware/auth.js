@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
-const db = require('../db');
+const { findAccountById } = require('../repo/accountRepo');
 
 async function authenticate(req, res, next) {
   const auth = req.headers.authorization;
@@ -15,26 +15,7 @@ async function authenticate(req, res, next) {
     const payload = jwt.verify(token, config.jwt.secret);
     console.log('JWT payload:', payload);
 
-    // Query includes role_id and user_type_id to fully populate req.user
-    const q = `
-      SELECT 
-        a.id,
-        a.fullname,
-        a.username,
-        a.email,
-        a.department_id,
-        a.status,
-        a.role_id,
-        a.user_type_id,
-        ut.type_name AS user_type_name,
-        r.role_name AS role_name
-      FROM accounts a
-      LEFT JOIN user_types ut ON a.user_type_id = ut.id
-      LEFT JOIN roles r ON a.role_id = r.id
-      WHERE a.id = $1
-    `;
-
-    const result = await db.query(q, [payload.sub]);
+    const result = await findAccountById(payload.sub);
     console.log('DB query result:', result.rows);
 
     if (result.rowCount === 0) {
